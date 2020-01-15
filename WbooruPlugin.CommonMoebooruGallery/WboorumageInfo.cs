@@ -40,7 +40,7 @@ namespace WbooruPlugin.CommonMoebooruGallery
                     FileLength = x.FileLength,
                     FullFileName = WebUtility.UrlDecode(Path.GetFileName(x.Url)),
                     Size = new Size(x.ImageWidth,x.ImageHeight)
-                })
+                }).ToArray()
             };
         }
 
