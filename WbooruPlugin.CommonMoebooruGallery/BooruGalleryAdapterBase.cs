@@ -1,8 +1,10 @@
 ﻿using GeneralizableMoebooruAPI;
 using GeneralizableMoebooruAPI.Bases;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,6 +15,7 @@ using Wbooru.Models;
 using Wbooru.Models.Gallery;
 using Wbooru.Settings;
 using Wbooru.UI.Pages;
+using Wbooru.Utils;
 using WbooruPlugin.CommonMoebooruGallery.InterfaceImpls;
 
 namespace WbooruPlugin.CommonMoebooruGallery
@@ -54,7 +57,13 @@ namespace WbooruPlugin.CommonMoebooruGallery
         {
             var limit = Setting<GlobalSetting>.Current.GetPictureCountPerLoad;
 
-            foreach (var item in APIWrapper.ImageFetcher.GetImages(tags,page).Select(x=>new WboorumageInfo(x) { GalleryName = GalleryName }))
+            foreach (var item in APIWrapper.ImageFetcher.GetImages(tags, page)
+                .Where(x =>
+                {
+                    CacheImageDetailData(x);
+                    return true;
+                })
+                .Select(x => new WboorumageInfo(x, GalleryName)))
             {
                 //自我审查(
                 if (!NSFWFilter(item))
@@ -98,10 +107,19 @@ namespace WbooruPlugin.CommonMoebooruGallery
             return detail;
         }
 
-        public override GalleryItem GetImage(string id) => (int.TryParse(id, out var i) && APIWrapper.ImageFetcher.GetImageInfo(i) is ImageInfo info) ? new WboorumageInfo(info)
+        public override GalleryItem GetImage(string id) 
         {
-            GalleryName = GalleryName
-        } : default;
+            if (int.TryParse(id, out var i))
+            {
+                if (TryGetCacheImageDetailData(i) is ImageInfo info1)
+                    return new WboorumageInfo(info1, GalleryName);
+
+
+                if (APIWrapper.ImageFetcher.GetImageInfo(i) is ImageInfo info2)
+                    return new WboorumageInfo(info2, GalleryName);
+            }
+            return default;
+        }
 
         public override IEnumerable<GalleryItem> GetMainPostedImages() => GetImagesInternal();
 
@@ -155,5 +173,37 @@ namespace WbooruPlugin.CommonMoebooruGallery
         {
             throw new NotImplementedException();
         }
+
+        #region Image Detail Data Cache
+
+        private void CacheImageDetailData(ImageInfo image_detail)
+        {
+            if (!(Setting<CommonSetting>.Current.CacheImagePostData&& Setting<GlobalSetting>.Current.EnableFileCache))
+                return;
+
+            var path = Path.Combine(CacheFolderHelper.CacheFolderPath,$"{image_detail.Id}_{nameof(GalleryName)}_{nameof(ImageInfo)}.cache");
+            var data = JsonConvert.SerializeObject(image_detail);
+
+            File.WriteAllText(path, data);
+        }
+
+        private ImageInfo TryGetCacheImageDetailData(int id)
+        {
+            if (!(Setting<CommonSetting>.Current.CacheImagePostData && Setting<GlobalSetting>.Current.EnableFileCache))
+                return null;
+
+            var path = Path.Combine(CacheFolderHelper.CacheFolderPath, $"{id}_{nameof(GalleryName)}_{nameof(ImageInfo)}.cache");
+
+            if (!File.Exists(path))
+                return null;
+
+            var data = File.ReadAllText(path);
+
+            var image_detail = JsonConvert.DeserializeObject<ImageInfo>(data);
+
+            return image_detail;
+        }
+
+        #endregion
     }
 }

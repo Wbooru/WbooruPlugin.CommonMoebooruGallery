@@ -13,9 +13,10 @@ namespace WbooruPlugin.CommonMoebooruGallery
 {
     public class WboorumageInfo : GalleryItem
     {
-        public WboorumageInfo(ImageInfo raw_info)
+        public WboorumageInfo(ImageInfo raw_info,string gallery_name)
         {
             Rating = raw_info.Rating;
+            GalleryName = gallery_name;
 
             GalleryItemID = raw_info.Id.ToString();
             PreviewImageSize = new Size(raw_info.ThumbnailImageUrl.ImageWidth, raw_info.ThumbnailImageUrl.ImageHeight);

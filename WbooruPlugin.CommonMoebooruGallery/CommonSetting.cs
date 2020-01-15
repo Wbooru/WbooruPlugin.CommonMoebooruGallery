@@ -16,5 +16,10 @@ namespace WbooruPlugin.CommonMoebooruGallery
         [Group("View Options")]
         [Description("钦定Questionable评价的图片也算是NSFW内容")]
         public bool QuestionableIsNSFW { get; set; }
+
+        [NeedRestart]
+        [Group("Network Options")]
+        [Description("能提前缓存图片详细信息的数据,前提GlobalSetting中的EnableMemoryCache为开启")]
+        public bool CacheImagePostData { get; set; } = true;
     }
 }
