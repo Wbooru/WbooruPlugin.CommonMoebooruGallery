@@ -15,7 +15,7 @@ namespace WbooruPlugin.CommonMoebooruGallery
         [NeedRestart]
         [Group("View Options")]
         [Description("钦定Questionable评价的图片也算是NSFW内容")]
-        public bool QuestionableIsNSFW { get; set; }
+        public bool QuestionableIsNSFW { get; set; } = true;
 
         [NeedRestart]
         [Group("Network Options")]
