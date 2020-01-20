@@ -11,9 +11,9 @@ using Wbooru.Models.Gallery;
 
 namespace WbooruPlugin.CommonMoebooruGallery
 {
-    public class WboorumageInfo : GalleryItem
+    public class WbooruImageInfo : GalleryItem
     {
-        public WboorumageInfo(ImageInfo raw_info,string gallery_name)
+        public WbooruImageInfo(ImageInfo raw_info,string gallery_name)
         {
             Rating = raw_info.Rating;
             GalleryName = gallery_name;

@@ -63,7 +63,7 @@ namespace WbooruPlugin.CommonMoebooruGallery
                     CacheImageDetailData(x);
                     return true;
                 })
-                .Select(x => new WboorumageInfo(x, GalleryName)))
+                .Select(x => new WbooruImageInfo(x, GalleryName)))
             {
                 //自我审查(
                 if (!NSFWFilter(item))
@@ -80,7 +80,7 @@ namespace WbooruPlugin.CommonMoebooruGallery
             if (!SettingManager.LoadSetting<GlobalSetting>().EnableNSFWFileterMode)
                 return true;
 
-            if (item is WboorumageInfo pi)
+            if (item is WbooruImageInfo pi)
             {
                 if (pi.Rating == Rating.Safe)
                     return true;
@@ -96,12 +96,12 @@ namespace WbooruPlugin.CommonMoebooruGallery
 
         public override GalleryImageDetail GetImageDetial(GalleryItem item)
         {
-            if (!((item as WboorumageInfo)?.GalleryDetail is GalleryImageDetail detail))
+            if (!((item as WbooruImageInfo)?.GalleryDetail is GalleryImageDetail detail))
             {
                 if (item.GalleryName != GalleryName)
                     throw new Exception($"This item doesn't belong with gallery {GalleryName}.");
 
-                detail = (GetImage(item.GalleryItemID) as WboorumageInfo)?.GalleryDetail;
+                detail = (GetImage(item.GalleryItemID) as WbooruImageInfo)?.GalleryDetail;
             }
 
             return detail;
@@ -112,11 +112,11 @@ namespace WbooruPlugin.CommonMoebooruGallery
             if (int.TryParse(id, out var i))
             {
                 if (TryGetCacheImageDetailData(i) is ImageInfo info1)
-                    return new WboorumageInfo(info1, GalleryName);
+                    return new WbooruImageInfo(info1, GalleryName);
 
 
                 if (APIWrapper.ImageFetcher.GetImageInfo(i) is ImageInfo info2)
-                    return new WboorumageInfo(info2, GalleryName);
+                    return new WbooruImageInfo(info2, GalleryName);
             }
             return default;
         }

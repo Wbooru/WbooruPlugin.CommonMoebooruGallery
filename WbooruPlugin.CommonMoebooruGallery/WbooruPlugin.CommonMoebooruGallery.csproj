@@ -57,7 +57,7 @@
     <Compile Include="GalleryImpls\YandeGallery.cs" />
     <Compile Include="InterfaceImpls\HttpRequestAdapter.cs" />
     <Compile Include="InterfaceImpls\LogAdapter.cs" />
-    <Compile Include="WboorumageInfo.cs" />
+    <Compile Include="WbooruImageInfo.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
