@@ -21,5 +21,9 @@ namespace WbooruPlugin.CommonMoebooruGallery
         [Group("Network Options")]
         [Description("能提前缓存图片详细信息的数据,前提GlobalSetting中的EnableMemoryCache为开启")]
         public bool CacheImagePostData { get; set; } = true;
+
+        public Dictionary<string, PreCacheRecord> PreCacheRecordData { get; set; } = new Dictionary<string, PreCacheRecord>();
+
+        public PreCacheRecord GetPreCacheRecordData(BooruGalleryAdapterBase gallery) => PreCacheRecordData.TryGetValue(gallery.GalleryName, out var record) ? record : PreCacheRecordData[gallery.GalleryName] = new PreCacheRecord();
     }
 }
