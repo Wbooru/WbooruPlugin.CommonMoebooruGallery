@@ -7,7 +7,10 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using Wbooru.Kernel.Updater;
 using Wbooru.Models.Gallery;
+using Wbooru.PluginExt;
+using Wbooru.Utils;
 
 namespace WbooruPlugin.CommonMoebooruGallery
 {
