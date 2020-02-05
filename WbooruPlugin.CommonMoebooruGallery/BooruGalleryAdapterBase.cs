@@ -49,7 +49,7 @@ namespace WbooruPlugin.CommonMoebooruGallery
                 HttpRequest = HttpRequestAdapter.Default,
                 Log = LogAdapter.Default,
                 TryGetValidFileSize = false,
-                PicturesCountPerRequest = 20
+                PicturesCountPerRequest = (ulong)Setting<GlobalSetting>.Current.GetPictureCountPerLoad
             };
 
             APIWrapper = new APIWrapper(APIWrapperOption);
