@@ -36,7 +36,6 @@ namespace WbooruPlugin.CommonMoebooruGallery
                 Score = raw_info.Score.ToString(),
                 Source = raw_info.Source,
                 Tags = raw_info.Tags,
-                Updater = raw_info.Author,
                 DownloadableImageLinks = raw_info.ImageUrls.Select(x=>new DownloadableImageLink() 
                 {
                     Description = x.UrlDescription,

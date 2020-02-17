@@ -6,7 +6,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Wbooru;
@@ -28,7 +30,8 @@ namespace WbooruPlugin.CommonMoebooruGallery
         IGalleryItemIteratorFastSkipable,
         IGalleryAccount,
         IGalleryNSFWFilter,
-        IGalleryVote
+        IGalleryVote,
+        IGalleryTagMetaSearch
     {
         public APIWrapperOption APIWrapperOption { get; }
         public APIWrapper APIWrapper { get; }
@@ -204,6 +207,122 @@ namespace WbooruPlugin.CommonMoebooruGallery
             var image_detail = JsonConvert.DeserializeObject<ImageInfo>(data);
 
             return image_detail;
+        }
+
+        #endregion
+
+
+        #region Tag PreCache
+
+        public IEnumerable<Wbooru.Models.Tag> StartPreCacheTags()
+        {
+            var record = Setting<CommonSetting>.Current.GetPreCacheRecordData(this);
+
+            const int check_point = 100;
+            int current_added = 0;
+
+            if (!record.FinishCache)
+            {
+                IEnumerable<Wbooru.Models.Tag> tags = Enumerable.Empty<Wbooru.Models.Tag>();
+
+                try
+                {
+                    //page param not work for konachan
+                    //var url = $"{APIWrapperOption.ApiBaseUrl}tag.json?order=count&page={record.CachedPages}&limit=100"
+
+                    var url = $"{APIWrapperOption.ApiBaseUrl}tag.json?limit=0";
+                    var array = RequestHelper.GetJsonContainer<JArray>(RequestHelper.CreateDeafult(url));
+
+                    tags = array.Where(x => x["count"].ToObject<int>() > 0).Select(x => BuildTag(x)).Skip(record.CachedCount).ToArray();
+
+                    if (!tags.Any())
+                    {
+                        //search done.
+                        record.FinishCache = true;
+                        yield break;
+                    }
+                }
+                catch (Exception e)
+                {
+                    tags = Enumerable.Empty<Wbooru.Models.Tag>();
+                    ExceptionHelper.DebugThrow(e);
+                    Thread.Sleep(1000);
+                }
+
+                foreach (var tag in tags)
+                {
+                    yield return tag;
+
+                    record.CachedCount++;
+                    current_added++;
+
+                    if (current_added>check_point)
+                    {
+                        current_added = 0;
+                        Setting.ForceSave();
+                    }
+                }
+            }
+            else
+            {
+                //todo 更新以及维护
+            }
+        }
+
+        private Wbooru.Models.Tag BuildTag(JToken tag_json)
+        {
+            return new Wbooru.Models.Tag()
+            {
+                Name = tag_json["name"].ToString(),
+                Type = (Wbooru.Models.TagType)tag_json["type"].ToObject<int>()
+            };
+        }
+
+        private readonly static Regex TAG_REGEX = new Regex(@"<li\sclass="".*?tag-type-(\w+).*?"">.*?tags=-?(.+?)\+?"".*?</li>");
+
+        public IEnumerable<Wbooru.Models.Tag> SearchTagMetaById(string id)
+        {
+            var url = $"{APIWrapperOption.ApiBaseUrl}post/show/{id}";
+            var html = RequestHelper.GetString(RequestHelper.CreateDeafult(url));
+
+            foreach (Match match in TAG_REGEX.Matches(html))
+            {
+                if (!Enum.TryParse<Wbooru.Models.TagType>(match.Groups[1].Value, true, out var type))
+                    continue;
+
+                yield return new Wbooru.Models.Tag()
+                {
+                    Name = WebUtility.UrlDecode(match.Groups[2].Value),
+                    Type = type
+                };
+            }
+        }
+
+        public IEnumerable<Wbooru.Models.Tag> SearchTagMeta(params string[] tags)
+        {
+            var tasks = tags.Select(x => GetTagMeta(x)).ToArray();
+
+            Task.WaitAll(tasks);
+
+            return tasks.Select(x => x.Result).OfType<Wbooru.Models.Tag>();
+        }
+
+        private async Task<Wbooru.Models.Tag> GetTagMeta(string tag_name)
+        {
+            try
+            {
+                var url = $"{APIWrapperOption.ApiBaseUrl}tag.json?name={tag_name}";
+                var array = RequestHelper.GetJsonContainer<JArray>(await RequestHelper.CreateDeafultAsync(url));
+
+                var result = array.Select(x => BuildTag(x)).OrderBy(x => Math.Abs(x.Name.Length - tag_name.Length)).ToArray();
+
+                return result.FirstOrDefault();
+            }
+            catch (Exception e)
+            {
+                ExceptionHelper.DebugThrow(e);
+                return null;
+            }
         }
 
         #endregion

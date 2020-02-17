@@ -4,7 +4,7 @@ namespace WbooruPlugin.CommonMoebooruGallery
 {
     public class PreCacheRecord
     {
-        public int CachedPages { get; set; } = 1;
+        public int CachedCount { get; set; } = 1;
         public bool FinishCache { get; set; } = false;
 
     }
