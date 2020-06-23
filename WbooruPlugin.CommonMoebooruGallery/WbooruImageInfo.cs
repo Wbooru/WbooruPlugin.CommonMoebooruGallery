@@ -8,6 +8,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Wbooru.Kernel.Updater;
+using Wbooru.Models;
 using Wbooru.Models.Gallery;
 using Wbooru.PluginExt;
 using Wbooru.Utils;
@@ -22,7 +23,7 @@ namespace WbooruPlugin.CommonMoebooruGallery
             GalleryName = gallery_name;
 
             GalleryItemID = raw_info.Id.ToString();
-            PreviewImageSize = new Size(raw_info.ThumbnailImageUrl.ImageWidth, raw_info.ThumbnailImageUrl.ImageHeight);
+            PreviewImageSize = new ImageSize(raw_info.ThumbnailImageUrl.ImageWidth, raw_info.ThumbnailImageUrl.ImageHeight);
             PreviewImageDownloadLink = raw_info.ThumbnailImageUrl.Url;
             DownloadFileName = $"{raw_info.Id} {string.Join(" ", raw_info.Tags)}";
 
