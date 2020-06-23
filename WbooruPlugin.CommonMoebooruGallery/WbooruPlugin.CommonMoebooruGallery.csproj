@@ -23,7 +23,9 @@
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
     <PackageReference Include="System.Net.Requests" Version="4.3.0" />
   </ItemGroup>
-  <PropertyGroup />
+  <PropertyGroup>
+    <Authors>MikiraSora</Authors>
+  </PropertyGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="xcopy &quot;$(ProjectDir)$(OutDir)*&quot; &quot;$(SolutionDir)Wbooru\bin\$(ConfigurationName)\netcoreapp3.1\Plugins\$(ProjectName)\&quot; /e /s /y" />
   </Target>
