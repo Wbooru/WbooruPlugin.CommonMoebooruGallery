@@ -11,7 +11,7 @@ namespace WbooruPlugin.CommonMoebooruGallery.GalleryImpls
     [Export(typeof(Gallery))]
     public class KonachanGallery : BooruGalleryAdapterBase
     {
-        public KonachanGallery() : base("http://konachan.net/", "So-I-Heard-You-Like-Mupkids-?--your-password--")
+        public KonachanGallery() : base("https://konachan.net/", "So-I-Heard-You-Like-Mupkids-?--your-password--")
         {
 
         }
