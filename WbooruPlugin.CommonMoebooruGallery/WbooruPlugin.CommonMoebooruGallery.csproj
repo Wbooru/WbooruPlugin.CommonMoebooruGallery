@@ -12,9 +12,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="GeneralizableMoebooruAPI" Version="0.7.5">
-      <Private>True</Private>
-    </PackageReference>
+    <PackageReference Include="GeneralizableMoebooruAPI" Version="0.7.9.5" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0">
       <GeneratePathProperty>false</GeneratePathProperty>
     </PackageReference>
