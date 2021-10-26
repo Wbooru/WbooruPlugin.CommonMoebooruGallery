@@ -12,7 +12,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="GeneralizableMoebooruAPI" Version="0.7.9.5" />
+    <PackageReference Include="GeneralizableMoebooruAPI" Version="0.8.0" />
     <PackageReference Include="Microsoft.CSharp" Version="4.7.0">
       <GeneratePathProperty>false</GeneratePathProperty>
     </PackageReference>
@@ -23,6 +23,13 @@
   </ItemGroup>
   <PropertyGroup>
     <Authors>MikiraSora</Authors>
+    <ApplicationIcon />
+    <Win32Resource />
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DebugType>embedded</DebugType>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="xcopy &quot;$(ProjectDir)$(OutDir)*&quot; &quot;$(SolutionDir)Wbooru\bin\$(ConfigurationName)\netcoreapp3.1\Plugins\$(ProjectName)\&quot; /e /s /y" />

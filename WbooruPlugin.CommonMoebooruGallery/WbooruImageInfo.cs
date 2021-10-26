@@ -25,6 +25,7 @@ namespace WbooruPlugin.CommonMoebooruGallery
             GalleryItemID = raw_info.Id.ToString();
             PreviewImageSize = new ImageSize(raw_info.ThumbnailImageUrl.ImageWidth, raw_info.ThumbnailImageUrl.ImageHeight);
             PreviewImageDownloadLink = raw_info.ThumbnailImageUrl.Url;
+            DetailLink = raw_info.DetailUrl;
             DownloadFileName = $"{raw_info.Id} {string.Join(" ", raw_info.Tags)}";
 
             GalleryDetail = new GalleryImageDetail()
