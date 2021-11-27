@@ -82,7 +82,7 @@ namespace WbooruPlugin.CommonMoebooruGallery
 
         public bool NSFWFilter(GalleryItem item)
         {
-            if (!SettingManager.LoadSetting<GlobalSetting>().EnableNSFWFileterMode)
+            if (!Setting<GlobalSetting>.Current.EnableNSFWFileterMode)
                 return true;
 
             if (item is WbooruImageInfo pi)
@@ -154,18 +154,24 @@ namespace WbooruPlugin.CommonMoebooruGallery
             return GetImagesInternal(null, page).Skip(skip_count);
         }
 
-        public void AccountLogin(AccountInfo info)
+        public Task AccountLoginAsync(AccountInfo info)
         {
-            if (APIWrapper.AccountManager.Login(info.Name, info.Password))
+            return Task.Run(() =>
             {
-                current_info = info;
-            }
+                if (APIWrapper.AccountManager.Login(info.Name, info.Password))
+                {
+                    current_info = info;
+                }
+            });
         }
 
-        public void AccountLogout()
+        public Task AccountLogoutAsync()
         {
-            APIWrapper.AccountManager.Logout();
-            current_info = null;
+            return Task.Run(() =>
+            {
+                APIWrapper.AccountManager.Logout();
+                current_info = null;
+            });
         }
 
         public IEnumerable<GalleryItem> NSFWFilter(IEnumerable<GalleryItem> items) => items.Where(x => NSFWFilter(x));
