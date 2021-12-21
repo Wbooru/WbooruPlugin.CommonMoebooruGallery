@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using Wbooru;
 using Wbooru.Galleries;
 using Wbooru.Galleries.SupportFeatures;
+using Wbooru.Kernel;
 using Wbooru.Models;
 using Wbooru.Models.Gallery;
 using Wbooru.Network;
@@ -58,11 +59,11 @@ namespace WbooruPlugin.CommonMoebooruGallery
             APIWrapper = new APIWrapper(APIWrapperOption);
         }
 
-        public IEnumerable<GalleryItem> GetImagesInternal(IEnumerable<string> tags = null, int page = 1)
+        public async IAsyncEnumerable<GalleryItem> GetImagesInternal(IEnumerable<string> tags = null, int page = 1)
         {
             var limit = Setting<GlobalSetting>.Current.GetPictureCountPerLoad;
 
-            foreach (var item in APIWrapper.ImageFetcher.GetImages(tags, page)
+            await foreach (var item in APIWrapper.ImageFetcher.GetImagesAsync(tags, page)
                 .Where(x =>
                 {
                     CacheImageDetailData(x);
@@ -99,52 +100,50 @@ namespace WbooruPlugin.CommonMoebooruGallery
             return false;
         }
 
-        public override GalleryImageDetail GetImageDetial(GalleryItem item)
+        public override async Task<GalleryImageDetail> GetImageDetial(GalleryItem item)
         {
             if (!((item as WbooruImageInfo)?.GalleryDetail is GalleryImageDetail detail))
             {
                 if (item.GalleryName != GalleryName)
                     throw new Exception($"This item doesn't belong with gallery {GalleryName}.");
 
-                detail = (GetImage(item.GalleryItemID) as WbooruImageInfo)?.GalleryDetail;
+                detail = ((await GetImage(item.GalleryItemID)) as WbooruImageInfo)?.GalleryDetail;
             }
 
             return detail;
         }
 
-        public override GalleryItem GetImage(string id) 
+        public override async Task<GalleryItem> GetImage(string id)
         {
             if (int.TryParse(id, out var i))
             {
-                if (TryGetCacheImageDetailData(i) is ImageInfo info1)
+                if ((await TryGetCacheImageDetailData(i)) is ImageInfo info1)
                     return new WbooruImageInfo(info1, GalleryName);
 
 
-                if (APIWrapper.ImageFetcher.GetImageInfo(i) is ImageInfo info2)
+                if (await APIWrapper.ImageFetcher.GetImageInfoAsync(i) is ImageInfo info2)
+                {
+                    CacheImageDetailData(info2);
                     return new WbooruImageInfo(info2, GalleryName);
+                }
             }
             return default;
         }
 
-        public override IEnumerable<GalleryItem> GetMainPostedImages() => GetImagesInternal();
+        public override IAsyncEnumerable<GalleryItem> GetMainPostedImages() => GetImagesInternal();
 
-        public IEnumerable<Wbooru.Models.Tag> SearchTag(string keywords)
+        public IAsyncEnumerable<Wbooru.Models.Tag> SearchTagAsync(string keywords)
         {
-            var tags = APIWrapper.TagSearcher.SearchTags(keywords);
-
-            if (tags?.Count() == 0)
-                return Enumerable.Empty<Wbooru.Models.Tag>();
-
-            return tags.Select(x => new Wbooru.Models.Tag()
+            return APIWrapper.TagSearcher.SearchTagsAsync(keywords).Select(x => new Wbooru.Models.Tag()
             {
                 Name = x.Name,
                 Type = (Wbooru.Models.TagType)(int)x.Type
             });
         }
 
-        public IEnumerable<GalleryItem> SearchImages(IEnumerable<string> keywords) => GetImagesInternal(keywords);
+        public IAsyncEnumerable<GalleryItem> SearchImagesAsync(IEnumerable<string> keywords) => GetImagesInternal(keywords);
 
-        public IEnumerable<GalleryItem> IteratorSkip(int skip_count)
+        public IAsyncEnumerable<GalleryItem> IteratorSkipAsync(int skip_count)
         {
             var limit_count = Setting<GlobalSetting>.Current.GetPictureCountPerLoad;
 
@@ -154,61 +153,50 @@ namespace WbooruPlugin.CommonMoebooruGallery
             return GetImagesInternal(null, page).Skip(skip_count);
         }
 
-        public Task AccountLoginAsync(AccountInfo info)
+        public async Task AccountLoginAsync(AccountInfo info)
         {
-            return Task.Run(() =>
+            if (await APIWrapper.AccountManager.LoginAsync(info.Name, info.Password))
             {
-                if (APIWrapper.AccountManager.Login(info.Name, info.Password))
-                {
-                    current_info = info;
-                }
-            });
+                current_info = info;
+            }
         }
 
         public Task AccountLogoutAsync()
         {
-            return Task.Run(() =>
-            {
-                APIWrapper.AccountManager.Logout();
-                current_info = null;
-            });
+            current_info = null;
+            return APIWrapper.AccountManager.LogoutAsync();
         }
 
-        public IEnumerable<GalleryItem> NSFWFilter(IEnumerable<GalleryItem> items) => items.Where(x => NSFWFilter(x));
+        public IAsyncEnumerable<GalleryItem> NSFWFilter(IAsyncEnumerable<GalleryItem> items) => items.Where(x => NSFWFilter(x));
 
-        public void SetVote(GalleryItem item, bool is_mark) => APIWrapper.ImageVoter.SetVoteValue(int.Parse(item.GalleryItemID), is_mark);
+        public async Task SetVoteAsync(GalleryItem item, bool is_mark) => await APIWrapper.ImageVoter.SetVoteValueAsync(int.Parse(item.GalleryItemID), is_mark);
 
-        public bool IsVoted(GalleryItem item) => APIWrapper.ImageVoter.IsVoted(int.Parse(item.GalleryItemID));
-
-        public IEnumerable<GalleryItem> GetVotedGalleryItem()
-        {
-            throw new NotImplementedException();
-        }
+        public async Task<bool> IsVotedAsync(GalleryItem item) => await APIWrapper.ImageVoter.IsVotedAsync(int.Parse(item.GalleryItemID));
 
         #region Image Detail Data Cache
 
         private void CacheImageDetailData(ImageInfo image_detail)
         {
-            if (!(Setting<CommonSetting>.Current.CacheImagePostData&& Setting<GlobalSetting>.Current.EnableFileCache))
+            if (!(Setting<CommonSetting>.Current.CacheImagePostData && Setting<GlobalSetting>.Current.EnableFileCache))
                 return;
 
-            var path = Path.Combine(CacheFolderHelper.CacheFolderPath,$"{image_detail.Id}_{nameof(GalleryName)}_{nameof(ImageInfo)}.cache");
-            var data = JsonConvert.SerializeObject(image_detail);
-
-            File.WriteAllText(path, data);
+            var path = Path.Combine($"{image_detail.Id}_{nameof(GalleryName)}_{nameof(ImageInfo)}.cache");
+            using var data = new MemoryStream(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(image_detail)));
+            Container.Get<ICacheManager>().PutCacheContent(path, data);
         }
 
-        private ImageInfo TryGetCacheImageDetailData(int id)
+        private async Task<ImageInfo> TryGetCacheImageDetailData(int id)
         {
             if (!(Setting<CommonSetting>.Current.CacheImagePostData && Setting<GlobalSetting>.Current.EnableFileCache))
                 return null;
 
-            var path = Path.Combine(CacheFolderHelper.CacheFolderPath, $"{id}_{nameof(GalleryName)}_{nameof(ImageInfo)}.cache");
+            var path = Path.Combine($"{id}_{nameof(GalleryName)}_{nameof(ImageInfo)}.cache");
 
             if (!File.Exists(path))
                 return null;
 
-            var data = File.ReadAllText(path);
+            using var stream = new StreamReader(await Container.Get<ICacheManager>().GetCacheContent(path));
+            var data = await stream.ReadToEndAsync();
 
             var image_detail = JsonConvert.DeserializeObject<ImageInfo>(data);
 
@@ -262,7 +250,7 @@ namespace WbooruPlugin.CommonMoebooruGallery
                     record.CachedCount++;
                     current_added++;
 
-                    if (current_added>check_point)
+                    if (current_added > check_point)
                     {
                         current_added = 0;
                         Setting.ForceSave();
@@ -329,6 +317,11 @@ namespace WbooruPlugin.CommonMoebooruGallery
                 ExceptionHelper.DebugThrow(e);
                 return null;
             }
+        }
+
+        public IAsyncEnumerable<GalleryItem> GetVotedGalleryItemsAsync()
+        {
+            throw new NotImplementedException();
         }
 
         #endregion
